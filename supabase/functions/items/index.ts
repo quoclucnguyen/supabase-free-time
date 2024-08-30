@@ -34,14 +34,14 @@ Deno.serve(async (req) => {
 
   switch (method) {
     case "GET": {
-      const rows = await db.query.item.findMany({
+      const entities = await db.query.item.findMany({
         offset: 0,
         limit: 10,
         orderBy: desc(item.id),
       });
       const result = await db.select({ count: count() }).from(item);
 
-      return Response.json({ rows, count: result[0].count });
+      return Response.json({ entities, count: result[0].count });
     }
 
     case "POST": {
@@ -60,3 +60,5 @@ Deno.serve(async (req) => {
       return new Response("Method not allowed", { status: 405 });
   }
 });
+
+
