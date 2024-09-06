@@ -1,22 +1,10 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
-
-console.log(`Function "telegram-bot" up and running!`);
-
-import postgres from "npm:postgres@3.4.3";
-import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
-import { drizzle } from "npm:drizzle-orm@0.29.1/postgres-js/driver";
+import "jsr:@std/dotenv/load";
+import { webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { user } from "../_shared/schema.ts";
 import { eq } from "npm:drizzle-orm@0.29.1/expressions";
-
-const databaseUrl = Deno.env.get("SUPABASE_DB_URL")!;
-const client = postgres(databaseUrl, { prepare: false });
-const db = drizzle(client, {
-  schema: {
-    user,
-  },
-});
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import db from "../_shared/db.ts";
+import bot from "../_shared/bot.ts";
 
 const insertUser = async (
   { first_name, last_name, username, id }: {
@@ -39,13 +27,7 @@ const findUserById = async (id: number) => {
     .limit(1);
 };
 
-/**
- * Bot instance
- */
-const bot = new Bot(
-  Deno.env.get("TELEGRAM_BOT_TOKEN") ||
-    "5255532380:AAFYA3U2gX3-KVCrc3vG6S5mRrWGFjTJQ4c",
-);
+
 
 bot.command("start", async (ctx) => {
   if (ctx?.message?.from) {

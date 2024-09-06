@@ -5,15 +5,11 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import { drizzle } from "npm:drizzle-orm@0.29.1/postgres-js";
-import postgres from "npm:postgres@3.4.3";
 import { item } from "../_shared/schema.ts";
-import {  count, desc } from "npm:drizzle-orm@0.29.1";
-
-console.log("Items function");
-
-// Get the connection string from the environment variable "SUPABASE_DB_URL"
-const databaseUrl = Deno.env.get("SUPABASE_DB_URL")!;
+import {  and, count, desc, gte, lte } from "npm:drizzle-orm@0.29.1";
+import db from "../_shared/db.ts";
+import dayjs from "https://deno.land/x/deno_dayjs@v0.5.0/mod.ts";
+import sendToAllUsers from "../_shared/send-to-all-users.ts";
 
 Deno.serve(async (req) => {
   const { method } = req;
@@ -23,33 +19,25 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Disable prefetch as it is not supported for "Transaction" pool mode
-  const client = postgres(databaseUrl, { prepare: false });
-  const db = drizzle(client, {
-    schema: {
-      item,
-    },
-  });
-  // const allItems = await db.query.item.findMany();
+ 
 
   switch (method) {
     case "GET": {
-      const entities = await db.query.item.findMany({
-        offset: 0,
-        limit: 10,
-        orderBy: desc(item.id),
-      });
-      const result = await db.select({ count: count() }).from(item);
-
-      return Response.json({ entities, count: result[0].count });
+      const today = dayjs().toDate();
+      const threeDaysLater = dayjs().add(3, "day").toDate();
+      const entities = await db.select().from(item).where(and(gte(item.expired_at,today), lte(item.expired_at,threeDaysLater))).orderBy(desc(item.expired_at));
+      
+      for (const entity of entities) {
+        await sendToAllUsers(`Expired item: ${entity.name} in ${entity.location} expired at ${dayjs(entity.expired_at).format("DD/MM/YYYY")}`);
+      }
+      return Response.json(entities);
     }
 
     case "POST": {
       await db.insert(item).values({
         name: "test",
         location: "dry",
-        imageUrl: "test",
-        decription: "test",
+        description: "test",
         note: "test",
       });
 
