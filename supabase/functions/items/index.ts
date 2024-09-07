@@ -3,13 +3,13 @@
 // This enables autocomplete, go to definition, etc.
 
 // Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { corsHeaders } from "../_shared/cors.ts";
-import { item } from "../_shared/schema.ts";
-import {  and, count, desc, gte, lte } from "npm:drizzle-orm@0.29.1";
-import db from "../_shared/db.ts";
 import dayjs from "https://deno.land/x/deno_dayjs@v0.5.0/mod.ts";
-import sendToAllUsers from "../_shared/send-to-all-users.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { and, desc, gte, lte } from "npm:drizzle-orm@0.29.1";
+import { corsHeaders } from "../_shared/cors.ts";
+import db from "../_shared/db.ts";
+import { item } from "../_shared/schema.ts";
+import { sendItemsToAllUsers } from "../_shared/send-to-all-users.ts";
 
 Deno.serve(async (req) => {
   const { method } = req;
@@ -19,17 +19,16 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
- 
-
   switch (method) {
     case "GET": {
       const today = dayjs().toDate();
       const threeDaysLater = dayjs().add(3, "day").toDate();
-      const entities = await db.select().from(item).where(and(gte(item.expired_at,today), lte(item.expired_at,threeDaysLater))).orderBy(desc(item.expired_at));
-      
-      for (const entity of entities) {
-        await sendToAllUsers(`Expired item: ${entity.name} in ${entity.location} expired at ${dayjs(entity.expired_at).format("DD/MM/YYYY")}`);
-      }
+      const entities = await db.select().from(item).where(
+        and(gte(item.expired_at, today), lte(item.expired_at, threeDaysLater)),
+      ).orderBy(desc(item.expired_at));
+
+      await sendItemsToAllUsers(entities);
+
       return Response.json(entities);
     }
 
@@ -48,5 +47,3 @@ Deno.serve(async (req) => {
       return new Response("Method not allowed", { status: 405 });
   }
 });
-
-
