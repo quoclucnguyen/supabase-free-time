@@ -1,13 +1,8 @@
 import { webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import "jsr:@std/dotenv/load";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
 import bot from "../_shared/bot.ts";
-
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-);
+import { supabase } from "../_shared/db.ts";
 
 const insertUser = async (
   { first_name, last_name, username, id }: {
