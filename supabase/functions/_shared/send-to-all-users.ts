@@ -1,13 +1,6 @@
 import dayjs from "https://deno.land/x/deno_dayjs@v0.5.0/mod.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
 import bot from "./bot.ts";
-import db from "./db.ts";
-import { user } from "./schema.ts";
-
-const supabaseAdminClient = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-);
+import { supabase } from "./db.ts";
 
 /**
  * Creates a markdown string with the item's information
@@ -54,20 +47,20 @@ ${expiredText}
  * @returns {Promise<void>}
  */
 export const sendItemsToAllUsers = async (items: any): Promise<void> => {
-  const users = await db.select().from(user);
+  const { data: users } = await supabase.from("user").select("*");
 
-  for (const user of users) {
+  for (const user of users ?? []) {
     for (const item of items) {
       if (item.bucket && item.path) {
-        const result = await supabaseAdminClient.storage.from(
+        const result = supabase.storage.from(
           "items",
         )
-          .createSignedUrl(item.path, 60 * 60 * 24 * 7);
+          .getPublicUrl(item.path);
 
         if (result.data) {
           await bot.api.sendPhoto(
             user.telegram_user_id ?? "",
-            result.data.signedUrl,
+            result.data.publicUrl,
             {
               caption: createItemContent(item),
               parse_mode: "Markdown",

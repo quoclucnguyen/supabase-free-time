@@ -5,10 +5,8 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import dayjs from "https://deno.land/x/deno_dayjs@v0.5.0/mod.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { and, desc, gte, lte } from "npm:drizzle-orm@0.29.1";
 import { corsHeaders } from "../_shared/cors.ts";
-import db from "../_shared/db.ts";
-import { item } from "../_shared/schema.ts";
+import { supabase } from "../_shared/db.ts";
 import { sendItemsToAllUsers } from "../_shared/send-to-all-users.ts";
 
 Deno.serve(async (req) => {
@@ -23,23 +21,18 @@ Deno.serve(async (req) => {
     case "GET": {
       const today = dayjs().toDate();
       const threeDaysLater = dayjs().add(3, "day").toDate();
-      const entities = await db.select().from(item).where(
-        and(gte(item.expired_at, today), lte(item.expired_at, threeDaysLater)),
-      ).orderBy(desc(item.expired_at));
 
-      await sendItemsToAllUsers(entities);
+      const { data } = await supabase.from("item").select("*").gte(
+        "expired_at",
+        today.toISOString(),
+      ).lte("expired_at", threeDaysLater.toISOString());
 
-      return Response.json(entities);
+      await sendItemsToAllUsers(data ?? []);
+
+      return Response.json(data);
     }
 
     case "POST": {
-      await db.insert(item).values({
-        name: "test",
-        location: "dry",
-        description: "test",
-        note: "test",
-      });
-
       return new Response("OK", { status: 200 });
     }
 
