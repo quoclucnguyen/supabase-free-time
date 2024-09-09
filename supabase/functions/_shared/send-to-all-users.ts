@@ -52,15 +52,15 @@ export const sendItemsToAllUsers = async (items: any): Promise<void> => {
   for (const user of users ?? []) {
     for (const item of items) {
       if (item.bucket && item.path) {
-        const result = supabase.storage.from(
+        const result = await supabase.storage.from(
           "items",
         )
-          .getPublicUrl(item.path);
+          .createSignedUrl(item.path, 60 * 10);
 
         if (result.data) {
           await bot.api.sendPhoto(
             user.telegram_user_id ?? "",
-            result.data.publicUrl,
+            result.data.signedUrl,
             {
               caption: createItemContent(item),
               parse_mode: "Markdown",
