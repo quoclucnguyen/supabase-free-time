@@ -22,10 +22,12 @@ Deno.serve(async (req) => {
       const today = dayjs().toDate();
       const threeDaysLater = dayjs().add(3, "day").toDate();
 
-      const { data } = await supabase.from("item").select("*").gte(
-        "expired_at",
-        today.toISOString(),
-      ).lte("expired_at", threeDaysLater.toISOString());
+      const { data } = await supabase.from("item").select("*")
+        .eq("category", "foods")
+        .gte(
+          "expired_at",
+          today.toISOString(),
+        ).lte("expired_at", threeDaysLater.toISOString());
 
       await sendItemsToAllUsers(data ?? []);
 
